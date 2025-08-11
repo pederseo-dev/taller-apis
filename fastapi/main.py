@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -9,6 +9,13 @@ menu = {
     "comidas": ["pizza", "hamburguesa", "ensalada"],
     "bebidas": ["agua", "refresco", "jugo"],
     "postres": ["helado", "pastel", "fruta"]
+}
+
+# Menú premium para usuarios autenticados
+menu_premium = {
+    "comidas": ["pizza", "hamburguesa", "ensalada", "lobster", "filete wagyu", "caviar"],
+    "bebidas": ["agua", "refresco", "jugo", "champagne", "vino tinto premium", "whisky 18 años"],
+    "postres": ["helado", "pastel", "fruta", "soufflé de chocolate", "tiramisú italiano", "crème brûlée"]
 }
 
 class Pedido(BaseModel):
@@ -23,8 +30,18 @@ class Modificar(BaseModel):
     postre: str
 #----------------------------------------------------------------------------------- Ver menu
 @app.get("/ver_menu")
-def ver_menu():
-    return {"menu":menu}
+def ver_menu(authorization: str = Header(None)):
+    # Verificar si viene el header de autorización
+    if authorization and authorization == "cheto":
+        return {
+            "mensaje": "🎉 ¡Bienvenido al menú premium!",
+            "menu": menu_premium
+        }
+    else:
+        return {
+            "mensaje": "🍽️ Menú estándar disponible",
+            "menu": menu
+        }
     
 #----------------------------------------------------------------------------------- Hacer pedido
 @app.post("/hacer_pedido")
@@ -74,3 +91,28 @@ def eliminar_pedido(numero_mesa: int):
     
     del pedidos[numero_mesa]
     return {"mensaje": f"Pedido de la mesa {numero_mesa} eliminado correctamente"}
+
+#----------------------------------------------------------------------------------- Menú Premium (con autenticación básica)
+@app.get("/menu_premium")
+def menu_premium_route(authorization: str = Header(None)):
+    """
+    Ruta para demostrar autenticación básica.
+    Envía el header 'authorization' con valor 'cheto' para acceder.
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=401, 
+            detail="🔒 Acceso denegado. Necesitas enviar el header 'authorization' con valor 'cheto'"
+        )
+    
+    if authorization != "cheto":
+        raise HTTPException(
+            status_code=403, 
+            detail="❌ Credenciales incorrectas. Usa 'cheto' como valor del header authorization"
+        )
+    
+    return {
+        "mensaje": "🎉 ¡Acceso premium concedido!",
+        "menu_premium": menu_premium,
+        "instrucciones": "Para probar esta ruta, envía el header: authorization: cheto"
+    }

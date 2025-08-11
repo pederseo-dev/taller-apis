@@ -1,0 +1,6 @@
+fastapi/env
+fastapi/venv
+fastapi/__pycache__
+requests/env
+requests/venv
+requests/__pycache__
